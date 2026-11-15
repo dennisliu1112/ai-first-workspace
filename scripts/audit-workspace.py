@@ -232,6 +232,7 @@ def classify_folder(item_name: str, is_git: bool, markers: list, content_signals
     ]
     if any(k in base_lower for k in model_keywords) or (signals.get("has_model_weights") and not markers):
         sub = "shared-weights/" if kebab == "ai-models" else f"{kebab}/"
+        sub_win = sub.replace("/", "\\")
         return {
             "layer": "ai-models",
             "group_order": 3,
@@ -240,7 +241,7 @@ def classify_folder(item_name: str, is_git: bool, markers: list, content_signals
             "badge_zh": "🧠 模型資產 (SSOT)",
             "badge_en": "🧠 AI Models (SSOT)",
             "target_unix": f"~/ai-models/{sub}",
-            "target_win": f"%USERPROFILE%\\ai-models\\{sub.replace('/', '\\')}",
+            "target_win": f"%USERPROFILE%\\ai-models\\{sub_win}",
             "reason_zh": "全系統唯一模型與語料權重庫，各專案透過設定檔唯讀指向，絕不重複複製進專案。",
             "reason_en": "Centralized model weights & corpora SSOT. Referenced via config across all projects without duplication."
         }
@@ -252,6 +253,7 @@ def classify_folder(item_name: str, is_git: bool, markers: list, content_signals
     ]
     if custom_layer == "agent-hub" or any(k in base_lower for k in hub_keywords) or (signals.get("has_skill_or_mcp") and not markers):
         sub = f"skills/{kebab}/" if ("skill" in base_lower or signals.get("has_skill_or_mcp")) else f"{kebab}/"
+        sub_win = sub.replace("/", "\\")
         return {
             "layer": "agent-hub",
             "group_order": 2,
@@ -260,7 +262,7 @@ def classify_folder(item_name: str, is_git: bool, markers: list, content_signals
             "badge_zh": "🛰️ 技能與規範中樞 (SSOT)",
             "badge_en": "🛰️ Agent Hub (SSOT)",
             "target_unix": f"~/agent-hub/{sub}",
-            "target_win": f"%USERPROFILE%\\agent-hub\\{sub.replace('/', '\\')}",
+            "target_win": f"%USERPROFILE%\\agent-hub\\{sub_win}",
             "reason_zh": "跨 Agent 共用之 Skills、Prompts 與中樞設定，作為唯一真實來源 (SSOT)，單集工作區透過唯讀軟連結掛載。",
             "reason_en": "Cross-agent skills, prompts, and MCP hub (SSOT). Mounted into lightweight task folders via read-only links."
         }
