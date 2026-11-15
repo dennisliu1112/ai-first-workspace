@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI-First Workspace Architecture & Savings Heatmap Simulator (EN / 繁中)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Standalone browser theme support when opened directly outside IDE */
+    html {
+      --background: #0f172a;
+      --card: #1e293b;
+      --foreground: #f8fafc;
+      --muted-foreground: #94a3b8;
+      --border: #334155;
+      --primary: #38bdf8;
+      --primary-foreground: #0f172a;
+      --secondary: #334155;
+      --secondary-foreground: #f1f5f9;
+      background-color: var(--background);
+      color: var(--foreground);
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-2.5">
+  <div class="bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+    <!-- Top Header & Real Calculated Metrics -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[var(--border)]">
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="ui-tag" class="px-2 py-0.5 text-xs font-semibold rounded-md bg-[var(--primary)] text-[var(--primary-foreground)]"></span>
+          <h2 id="ui-title" class="text-[var(--foreground)] font-semibold text-sm"></h2>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <button onclick="setHeatFilter('token')" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition">
+          🔥 <span id="ui-max-tok-lbl"></span><strong class="font-bold">14,770 tok</strong>
+        </button>
+        <button onclick="setHeatFilter('disk')" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 transition">
+          💎 <span id="ui-reclaim-lbl"></span><strong class="font-bold">3.53 GB</strong>
+        </button>
+        <!-- OS Switch -->
+        <div class="flex items-center gap-0.5 bg-[var(--secondary)] p-0.5 rounded border border-[var(--border)]">
+          <button onclick="setOS('unix')" id="os-unix" class="px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--foreground)] font-medium shadow-sm">macOS/Linux</button>
+          <button onclick="setOS('win')" id="os-win" class="px-1.5 py-0.5 rounded text-[var(--muted-foreground)]">Win</button>
+        </div>
+        <!-- Bilingual Switch (100% Supported: 繁中 / EN) -->
+        <div class="flex items-center gap-0.5 bg-[var(--secondary)] p-0.5 rounded border border-[var(--border)]">
+          <button onclick="setLang('zh')" id="lang-zh" class="px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--foreground)] font-medium shadow-sm">繁中</button>
+          <button onclick="setLang('en')" id="lang-en" class="px-1.5 py-0.5 rounded text-[var(--muted-foreground)]">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation View Tabs + Heatmap Filter Pills + Instant Search Input -->
+    <div class="flex flex-wrap items-center justify-between gap-2 my-2">
+      <div class="flex flex-wrap items-center gap-1 text-xs">
+        <button onclick="setViewMode('after-tree')" id="tab-after-tree" class="px-2 py-1 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium"></button>
+        <button onclick="setViewMode('before-list')" id="tab-before-list" class="px-2 py-1 rounded-lg bg-[var(--secondary)] text-[var(--secondary-foreground)]"></button>
+        <button onclick="setViewMode('episode-demo')" id="tab-episode-demo" class="px-2 py-1 rounded-lg bg-[var(--secondary)] text-[var(--secondary-foreground)]"></button>
+        <button onclick="setViewMode('rollback-script')" id="tab-rollback-script" class="px-2 py-1 rounded-lg bg-[var(--secondary)] text-[var(--secondary-foreground)]"></button>
+        <span class="text-[var(--muted-foreground)] mx-0.5">|</span>
+        <button onclick="setHeatFilter('all')" id="hf-all" class="px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--card)] font-medium"></button>
+        <button onclick="setHeatFilter('token')" id="hf-token" class="px-2 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 font-medium"></button>
+        <button onclick="setHeatFilter('disk')" id="hf-disk" class="px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-medium"></button>
+      </div>
+
+      <!-- Instant Search Bar -->
+      <div class="relative flex-1 min-w-[160px] max-w-xs">
+        <input
+          type="text"
+          id="search-input"
+          oninput="onSearchInput(this.value)"
+          class="w-full px-2.5 py-1 text-xs rounded-lg bg-[var(--background)] text-[var(--foreground)] border border-[var(--border)] focus:outline-none focus:border-[var(--primary)]"
+          placeholder=""
+        />
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA (View 1 & 2: Split Tree/List + Inspector) -->
+    <div id="main-split" class="grid grid-cols-12 gap-2.5">
+      <div class="col-span-6 border border-[var(--border)] rounded-lg p-2 bg-[var(--background)] max-h-72 overflow-y-auto space-y-1.5" id="left-pane"></div>
+
+      <div class="col-span-6 border border-[var(--border)] rounded-lg p-2.5 bg-[var(--background)] flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between gap-1 pb-1.5 border-b border-[var(--border)]">
+            <span id="d-badge" class="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--secondary-foreground)] truncate"></span>
+            <span id="d-tokens-pill" class="text-xs font-mono font-semibold shrink-0"></span>
+          </div>
+
+          <div class="mt-2 p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] space-y-1 text-xs">
+            <div class="flex items-start justify-between gap-2">
+              <span id="lbl-old-path" class="text-[var(--muted-foreground)] shrink-0"></span>
+              <code id="d-old-path" class="font-mono text-right break-all"></code>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span id="lbl-target" class="text-[var(--muted-foreground)] shrink-0"></span>
+              <code id="d-target" class="font-mono font-semibold text-emerald-400 text-right break-all"></code>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span id="lbl-symlink" class="text-[var(--muted-foreground)] shrink-0"></span>
+              <span id="d-symlink-status" class="font-medium text-right"></span>
+            </div>
+          </div>
+
+          <p id="d-reason" class="text-xs text-[var(--muted-foreground)] mt-1.5 leading-relaxed"></p>
+
+          <div class="mt-1.5 p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] space-y-1 text-xs">
+            <div class="flex items-start justify-between gap-2">
+              <span id="lbl-tok-bd" class="text-[var(--muted-foreground)] shrink-0"></span>
+              <div id="d-token-breakdown" class="font-mono text-right text-[var(--muted-foreground)]"></div>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span id="lbl-disk-bd" class="text-[var(--muted-foreground)] shrink-0"></span>
+              <div id="d-disk-breakdown" class="font-mono text-right text-[var(--muted-foreground)]"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-2">
+          <div class="flex items-center justify-between text-xs text-[var(--muted-foreground)] mb-1">
+            <span id="lbl-cmd-title"></span>
+            <span id="d-os-tag" class="font-mono">zsh / bash</span>
+          </div>
+          <pre id="d-cmd" class="p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: Single Episode Dynamic Symlink Assembly Preview (Bilingual) -->
+    <div id="episode-split" class="hidden border border-[var(--border)] rounded-lg p-3 bg-[var(--background)] text-xs space-y-2">
+      <div class="flex items-center justify-between">
+        <span id="ep-title" class="font-semibold text-sm"></span>
+        <span id="ep-pill" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono font-semibold"></span>
+      </div>
+      <pre id="ep-tree" class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] font-mono text-xs leading-relaxed overflow-x-auto"></pre>
+    </div>
+
+    <!-- VIEW 4: 1-Click Apply & Rollback (Undo) Script Preview (Bilingual) -->
+    <div id="rollback-split" class="hidden grid grid-cols-12 gap-2.5 text-xs">
+      <div class="col-span-6 border border-[var(--border)] rounded-lg p-2.5 bg-[var(--background)] space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span id="rb-apply-title" class="font-semibold text-emerald-400"></span>
+          <span class="font-mono text-[var(--muted-foreground)]">migrate-apply</span>
+        </div>
+        <pre id="rb-apply-code" class="p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] font-mono text-xs max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed"></pre>
+      </div>
+      <div class="col-span-6 border border-[var(--border)] rounded-lg p-2.5 bg-[var(--background)] space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span id="rb-undo-title" class="font-semibold text-amber-400"></span>
+          <span class="font-mono text-[var(--muted-foreground)]">migrate-rollback (Undo)</span>
+        </div>
+        <pre id="rb-undo-code" class="p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] font-mono text-xs max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ALL_ITEMS = [{"name": "OldWorkspace/app-monolith", "is_git": true, "has_space_or_cjk": false, "markers": ["package.json"], "layer": "projects", "group_order": 9, "tree_group_zh": "🚀 ~/projects/engineering/ (軟硬體與演算法工程專案)", "tree_group_en": "🚀 ~/projects/engineering/ (Software & Systems Engineering)", "badge_zh": "🛠️ 軟硬體工程專案", "badge_en": "🛠️ Engineering Project", "target_unix": "~/projects/engineering/app-monolith/", "target_win": "%USERPROFILE%\\projects\\engineering\\app-monolith\\", "reason_zh": "一般軟硬體與演算法工程專案，從舊時期大雜燴抽離歸位，並在舊路徑留下 Symlink 確保既有環境不斷鏈。", "reason_en": "Software/hardware engineering repo unpacked from legacy workspace folders, with a backward-compatible symlink left behind.", "total_tokens": 14770, "tree_tokens": 180, "ai_files": [{"file": "CLAUDE.md", "tokens": 5620}, {"file": "AGENTS.md", "tokens": 4840}, {"file": ".claude/agents/architect.md", "tokens": 2150}, {"file": ".agents/skills/db-migrator/SKILL.md", "tokens": 1980}], "reclaimable_mb": 420.0, "reclaimable_dirs": [{"path": "node_modules", "mb": 420.0}]}, {"name": "OldWorkspace/voice-kit", "is_git": true, "has_space_or_cjk": false, "markers": ["pyproject.toml"], "layer": "projects", "group_order": 5, "tree_group_zh": "🚀 ~/projects/media-studio/tools/ (工作室核心工具引擎)", "tree_group_en": "🚀 ~/projects/media-studio/tools/ (Core Studio Engines)", "badge_zh": "⚙️ 工作室核心工具引擎", "badge_en": "⚙️ Core Studio Engine", "target_unix": "~/projects/media-studio/tools/voice-kit/", "target_win": "%USERPROFILE%\\projects\\media-studio\\tools\\voice-kit\\", "reason_zh": "純程式碼核心工具庫（TTS / 動畫渲染 / 發布引擎），獨立 Git 版控，與每集產出的素材徹底分離。", "reason_en": "Core media engine code tracked in Git, cleanly decoupled from per-episode generated assets.", "total_tokens": 656, "tree_tokens": 36, "ai_files": [{"file": "AGENTS.md", "tokens": 620}], "reclaimable_mb": 480.0, "reclaimable_dirs": [{"path": ".venv", "mb": 480.0}]}, {"name": "OldWorkspace/anim-kit", "is_git": true, "has_space_or_cjk": false, "markers": ["package.json"], "layer": "projects", "group_order": 5, "tree_group_zh": "🚀 ~/projects/media-studio/tools/ (工作室核心工具引擎)", "tree_group_en": "🚀 ~/projects/media-studio/tools/ (Core Studio Engines)", "badge_zh": "⚙️ 工作室核心工具引擎", "badge_en": "⚙️ Core Studio Engine", "target_unix": "~/projects/media-studio/tools/anim-kit/", "target_win": "%USERPROFILE%\\projects\\media-studio\\tools\\anim-kit\\", "reason_zh": "純程式碼核心工具庫（TTS / 動畫渲染 / 發布引擎），獨立 Git 版控，與每集產出的素材徹底分離。", "reason_en": "Core media engine code tracked in Git, cleanly decoupled from per-episode generated assets.", "total_tokens": 570, "tree_tokens": 30, "ai_files": [{"file": "CLAUDE.md", "tokens": 540}], "reclaimable_mb": 350.0, "reclaimable_dirs": [{"path": "node_modules", "mb": 350.0}]}, {"name": "claude-skills-collection", "is_git": true, "has_space_or_cjk": false, "markers": [], "layer": "agent-hub", "group_order": 2, "tree_group_zh": "🛰️ ~/agent-hub/ (跨 Agent 技能與 MCP 中樞)", "tree_group_en": "🛰️ ~/agent-hub/ (Cross-Agent Skills & MCP SSOT)", "badge_zh": "🛰️ 技能與規範中樞 (SSOT)", "badge_en": "🛰️ Agent Hub (SSOT)", "target_unix": "~/agent-hub/skills/claude-skills-collection/", "target_win": "%USERPROFILE%\\agent-hub\\skills\\claude-skills-collection\\", "reason_zh": "跨 Agent 共用之 Skills、Prompts 與中樞設定，作為唯一真實來源 (SSOT)，單集工作區透過唯讀軟連結掛載。", "reason_en": "Cross-agent skills, prompts, and MCP hub (SSOT). Mounted into lightweight task folders via read-only links.", "total_tokens": 1444, "tree_tokens": 24, "ai_files": [{"file": "brand-style/SKILL.md", "tokens": 1420}], "reclaimable_mb": 0, "reclaimable_dirs": []}, {"name": "agent-workspace-daily", "is_git": false, "has_space_or_cjk": false, "markers": [], "layer": "agent-lab", "group_order": 4, "tree_group_zh": "🧪 ~/agent-lab/workspaces/ (日常對話純淨沙盒 CWD)", "tree_group_en": "🧪 ~/agent-lab/workspaces/ (Clean Daily Chat CWD)", "badge_zh": "🧪 Agent 純淨沙盒 CWD", "badge_en": "🧪 Agent Sandbox CWD", "target_unix": "~/agent-lab/workspaces/agent-workspace-daily/", "target_win": "%USERPROFILE%\\agent-lab\\workspaces\\agent-workspace-daily\\", "reason_zh": "日常對話助理專用純淨工作目錄 (CWD)，與底層開發原始碼樹徹底隔離，避免誤載開發 Skills 白燒數千至上萬 Tokens。", "reason_en": "Dedicated clean CWD for daily chat assistants, isolated from heavy dev repos to save thousands of tokens per turn.", "total_tokens": 398, "tree_tokens": 18, "ai_files": [{"file": "MEMORY.md", "tokens": 380}], "reclaimable_mb": 0, "reclaimable_dirs": []}, {"name": "Windows_Backup_2024", "is_git": false, "has_space_or_cjk": false, "markers": ["package.json"], "layer": "archives", "group_order": 10, "tree_group_zh": "🗄️ ~/archives/ (脫水瘦身冷資料封存區)", "tree_group_en": "🗄️ ~/archives/ (Dehydrated Cold Storage)", "badge_zh": "🗄️ 冷資料脫水封存", "badge_en": "🗄️ Cold Archive (Dehydrated)", "target_unix": "~/archives/windows-backup-2024/", "target_win": "%USERPROFILE%\\archives\\windows-backup-2024\\", "reason_zh": "歷史備份或已結案舊資料。搬入前先清除內部殘留的 node_modules / .venv 脫水瘦身，釋放硬碟空間。", "reason_en": "Legacy backups & inactive projects. Strip rebuildable node_modules / .venv before cold archiving.", "total_tokens": 60, "tree_tokens": 60, "ai_files": [], "reclaimable_mb": 890.0, "reclaimable_dirs": [{"path": "legacy-app/node_modules", "mb": 890.0}]}, {"name": "OldWorkspace/ComfyUI", "is_git": true, "has_space_or_cjk": false, "markers": ["pyproject.toml"], "layer": "projects", "group_order": 8, "tree_group_zh": "🚀 ~/projects/media-ai/ (生成式視覺與語音 AI 引擎)", "tree_group_en": "🚀 ~/projects/media-ai/ (Generative Vision & Audio)", "badge_zh": "🎨 生成式多媒體 AI 專案", "badge_en": "🎨 Generative Media AI", "target_unix": "~/projects/media-ai/comfy-ui/", "target_win": "%USERPROFILE%\\projects\\media-ai\\comfy-ui\\", "reason_zh": "影像、語音與字幕生成引擎，統一收納於 media-ai 領域，並將內部模型路徑指回 ~/ai-models 共用。", "reason_en": "Vision, TTS, and video generation projects unified under media-ai, sharing weights from ~/ai-models.", "total_tokens": 42, "tree_tokens": 42, "ai_files": [], "reclaimable_mb": 520.0, "reclaimable_dirs": [{"path": ".venv", "mb": 520.0}]}, {"name": "render_work/ep01-eval-metrics", "is_git": false, "has_space_or_cjk": false, "markers": ["package.json"], "layer": "episodes", "group_order": 6, "tree_group_zh": "🎬 ~/projects/media-studio/episodes/ (輕量單集執行單元)", "tree_group_en": "🎬 ~/projects/media-studio/episodes/ (Lightweight Task Runs)", "badge_zh": "🎬 單集輕量工作區 (State 1~3)", "badge_en": "🎬 Episode Task Workspace", "target_unix": "~/projects/media-studio/episodes/ep01-eval-metrics/", "target_win": "%USERPROFILE%\\projects\\media-studio\\episodes\\ep01-eval-metrics\\", "reason_zh": "單集製作工作區！在 AGY/Claude 開啟此目錄：唯讀軟連結 knowledge 與 skills，最終成品移入 ~/outputs，過渡快取 7 天自動回收。", "reason_en": "Lightweight episode workspace! Mounts knowledge & skills via read-only links; final MP4s go to ~/outputs, .cache auto-purges.", "total_tokens": 24, "tree_tokens": 24, "ai_files": [], "reclaimable_mb": 640.0, "reclaimable_dirs": [{"path": "dist/.cache (PNG frames)", "mb": 640.0}]}, {"name": "render_work/ep02-rag-pipeline", "is_git": false, "has_space_or_cjk": false, "markers": ["package.json"], "layer": "episodes", "group_order": 6, "tree_group_zh": "🎬 ~/projects/media-studio/episodes/ (輕量單集執行單元)", "tree_group_en": "🎬 ~/projects/media-studio/episodes/ (Lightweight Task Runs)", "badge_zh": "🎬 單集輕量工作區 (State 1~3)", "badge_en": "🎬 Episode Task Workspace", "target_unix": "~/projects/media-studio/episodes/ep02-rag-pipeline/", "target_win": "%USERPROFILE%\\projects\\media-studio\\episodes\\ep02-rag-pipeline\\", "reason_zh": "單集製作工作區！在 AGY/Claude 開啟此目錄：唯讀軟連結 knowledge 與 skills，最終成品移入 ~/outputs，過渡快取 7 天自動回收。", "reason_en": "Lightweight episode workspace! Mounts knowledge & skills via read-only links; final MP4s go to ~/outputs, .cache auto-purges.", "total_tokens": 24, "tree_tokens": 24, "ai_files": [], "reclaimable_mb": 310.0, "reclaimable_dirs": [{"path": "dist/.cache (WAV slices)", "mb": 310.0}]}, {"name": "OldWorkspace/AI Study Notes", "is_git": false, "has_space_or_cjk": true, "markers": [], "layer": "knowledge", "group_order": 1, "tree_group_zh": "📚 ~/knowledge/study/ (零噪音 RAG 純文字知識庫)", "tree_group_en": "📚 ~/knowledge/study/ (Noise-Free RAG Vault)", "badge_zh": "📚 純文字知識庫 (RAG)", "badge_en": "📚 Pure Knowledge Vault (RAG)", "target_unix": "~/knowledge/study/ai-study-notes/", "target_win": "%USERPROFILE%\\knowledge\\study\\ai-study-notes\\", "reason_zh": "純文字筆記、Obsidian Vault 與參考文件。提煉至 ~/knowledge 供本地 RAG 檢索與單集唯讀掛載，100% 排除程式碼噪音。", "reason_en": "Pure Markdown/PDF notes & Obsidian vault extracted to ~/knowledge for 100% noise-free local RAG indexing and read-only mounting.", "total_tokens": 48, "tree_tokens": 48, "ai_files": [], "reclaimable_mb": 0, "reclaimable_dirs": []}, {"name": "AI-Models", "is_git": false, "has_space_or_cjk": false, "markers": [], "layer": "ai-models", "group_order": 3, "tree_group_zh": "🧠 ~/ai-models/ (全系統統一模型權重庫)", "tree_group_en": "🧠 ~/ai-models/ (Unified Model Weights SSOT)", "badge_zh": "🧠 模型資產 (SSOT)", "badge_en": "🧠 AI Models (SSOT)", "target_unix": "~/ai-models/shared-weights/", "target_win": "%USERPROFILE%\\ai-models\\shared-weights\\", "reason_zh": "全系統唯一模型與語料權重庫，各專案透過設定檔唯讀指向，絕不重複複製進專案。", "reason_en": "Centralized model weights & corpora SSOT. Referenced via config across all projects without duplication.", "total_tokens": 96, "tree_tokens": 96, "ai_files": [], "reclaimable_mb": 0, "reclaimable_dirs": []}];
+    const TOTAL_COUNT = 11;
+    let viewMode = 'after-tree';
+    let heatFilter = 'all';
+    let searchQuery = '';
+    let selectedName = ALL_ITEMS.length > 0 ? ALL_ITEMS[0].name : '';
+    let currentOS = 'unix';
+    let currentLang = 'zh';
+
+    const I18N = {
+      zh: {
+        tag: "實測模擬 DRY-RUN",
+        title: `AI-First 最終架構預覽與效益熱力圖（共 ${TOTAL_COUNT} 個目錄）`,
+        maxTokLbl: "最高省 Token：",
+        reclaimLbl: "總計省空間：",
+        tabAfter: "🌳 1. 新架構全景樹",
+        tabBefore: "📂 2. 舊資料夾列表",
+        tabEpisode: "🎬 3. 單集組裝解剖",
+        tabRollback: "↩️ 4. 搬家與一鍵還原腳本",
+        hfAll: "全部",
+        hfToken: "🔥 省 Token 組",
+        hfDisk: "💎 省空間組",
+        searchPh: "🔍 搜尋舊資料夾或專案名 (如 voice, notes, comfy, backup)...",
+        lblOldPath: "📁 原本舊位置：",
+        lblTarget: "✨ 歸位新架構：",
+        lblSymlink: "🔗 原位不斷鏈：",
+        symlinkOk: "✅ 原路徑保留 Symlink 轉發，舊腳本 100% 正常運作",
+        lblTokBd: "🔥 省 Token 明細：",
+        lblDiskBd: "💎 省空間明細：",
+        lblCmdTitle: "🛡️ 單項安全搬移與原位留軟連結指令：",
+        tokPillPrefix: "🔥 可省 Context：~",
+        treeIndexLbl: "目錄樹索引",
+        noAiFilesLbl: "僅目錄樹基礎索引",
+        diskReclaimPrefix: "💎 可釋放 ",
+        diskReclaimMid: " MB",
+        diskZeroLbl: "0 MB (無肥大依賴殘留)",
+        cmdComment1: "# 1. 將實體移入新架構標準路徑",
+        cmdComment2: "# 2. 在舊位置建立軟連結，確保既有腳本不斷鏈",
+        epTitle: "★ 在 Antigravity / Claude 開啟單一集數工作區時的最終組裝樣貌：",
+        epPill: "🔥 啟動僅 ~420 Tokens (比大雜燴省 95%+)",
+        rbApplyTitle: "🚀 安全搬移腳本 (搬實體 + 留 Symlink 不斷鏈)",
+        rbUndoTitle: "💊 一鍵無損還原「後悔藥」腳本 (1-Click Rollback)",
+        noMatch: "找不到符合條件的資料夾，請切換篩選器或嘗試其他關鍵字。"
+      },
+      en: {
+        tag: "LIVE DRY-RUN",
+        title: `AI-First Final Architecture & Savings Heatmap (${TOTAL_COUNT} Folders)`,
+        maxTokLbl: "Max Token Save: ",
+        reclaimLbl: "Total Disk Save: ",
+        tabAfter: "🌳 1. Final Tree (After)",
+        tabBefore: "📂 2. Legacy List (Before)",
+        tabEpisode: "🎬 3. Episode Assembly",
+        tabRollback: "↩️ 4. Apply & Rollback Scripts",
+        hfAll: "All",
+        hfToken: "🔥 Token Savers",
+        hfDisk: "💎 Disk Savers",
+        searchPh: "🔍 Search legacy folder or project (e.g. voice, notes, comfy, backup)...",
+        lblOldPath: "📁 Legacy Path:",
+        lblTarget: "✨ New Target:",
+        lblSymlink: "🔗 Link Guard:",
+        symlinkOk: "✅ Symlink/Junction left at old path (0 broken scripts)",
+        lblTokBd: "🔥 Token Bill:",
+        lblDiskBd: "💎 Disk Saved:",
+        lblCmdTitle: "🛡️ Safe Migration Command (Move + Leave Link):",
+        tokPillPrefix: "🔥 Context Tax: ~",
+        treeIndexLbl: "File tree index",
+        noAiFilesLbl: "Base file tree index only",
+        diskReclaimPrefix: "💎 Reclaim ",
+        diskReclaimMid: " MB",
+        diskZeroLbl: "0 MB (Clean)",
+        cmdComment1: "# 1. Move physical directory into standardized AI-First path",
+        cmdComment2: "# 2. Leave symlink/junction at legacy path so old scripts never break",
+        epTitle: "★ Final Anatomy When Opening a Single Episode Workspace in Your Agent:",
+        epPill: "🔥 ~420 Tokens on startup (Saves 95%+ vs Monorepo)",
+        rbApplyTitle: "🚀 Safe Migration Script (Move + Leave Symlink/Junction)",
+        rbUndoTitle: "💊 1-Click Lossless Rollback Script (Undo Everything)",
+        noMatch: "No matching folder found. Try changing the filter or keyword."
+      }
+    };
+
+    function getRowHeatmapClasses(item, isSel) {
+      const tok = item.total_tokens;
+      const mb = item.reclaimable_mb;
+      let base = isSel ? 'ring-2 ring-[var(--primary)] font-semibold shadow-sm ' : 'opacity-95 hover:opacity-100 ';
+
+      if (heatFilter === 'disk' || (heatFilter === 'all' && mb >= 300 && tok < 1500)) {
+        if (mb >= 400) return base + 'border-l-4 border-emerald-400 bg-emerald-500/20 border-t border-r border-b border-emerald-500/40';
+        if (mb >= 100) return base + 'border-l-4 border-emerald-500/80 bg-emerald-500/10 border-t border-r border-b border-emerald-500/30';
+      }
+      if (tok >= 5000) return base + 'border-l-4 border-amber-400 bg-amber-500/25 border-t border-r border-b border-amber-500/50';
+      if (tok >= 1500) return base + 'border-l-4 border-amber-400 bg-amber-500/15 border-t border-r border-b border-amber-500/40';
+      if (tok >= 400)  return base + 'border-l-2 border-amber-500/60 bg-amber-500/5 border border-amber-500/20';
+      if (mb >= 300)   return base + 'border-l-4 border-emerald-400 bg-emerald-500/15 border border-emerald-500/30';
+      return base + (isSel ? 'border border-[var(--primary)] bg-[var(--card)]' : 'border border-transparent hover:bg-[var(--card)]');
+    }
+
+    function renderHeatBadges(item) {
+      const badges = [];
+      const tok = item.total_tokens;
+      const mb = item.reclaimable_mb;
+
+      if (tok >= 5000) {
+        badges.push(`<span class="px-1.5 py-0.5 rounded bg-amber-400 text-black font-bold font-mono text-xs shrink-0 shadow-sm">🔥 -${tok.toLocaleString()}t</span>`);
+      } else if (tok >= 1500) {
+        badges.push(`<span class="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-400/50 font-semibold font-mono text-xs shrink-0">🔥 -${tok.toLocaleString()}t</span>`);
+      } else if (tok >= 400) {
+        badges.push(`<span class="px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 font-mono text-xs shrink-0">-${tok}t</span>`);
+      }
+
+      if (mb >= 400) {
+        badges.push(`<span class="px-1.5 py-0.5 rounded bg-emerald-400 text-black font-bold font-mono text-xs shrink-0 shadow-sm">💎 -${mb}MB</span>`);
+      } else if (mb >= 100) {
+        badges.push(`<span class="px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 font-semibold font-mono text-xs shrink-0">💎 -${mb}MB</span>`);
+      }
+      return `<div class="flex items-center gap-1 shrink-0">${badges.join('')}</div>`;
+    }
+
+    function setHeatFilter(mode) {
+      heatFilter = mode;
+      document.getElementById('hf-all').className = mode === 'all'
+        ? 'px-2 py-0.5 rounded border-2 border-[var(--primary)] bg-[var(--card)] font-semibold'
+        : 'px-2 py-0.5 rounded border border-[var(--border)] bg-[var(--card)] opacity-75';
+      document.getElementById('hf-token').className = mode === 'token'
+        ? 'px-2 py-0.5 rounded border-2 border-amber-400 bg-amber-500/25 text-amber-300 font-bold shadow-sm'
+        : 'px-2 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 font-medium opacity-80';
+      document.getElementById('hf-disk').className = mode === 'disk'
+        ? 'px-2 py-0.5 rounded border-2 border-emerald-400 bg-emerald-500/25 text-emerald-300 font-bold shadow-sm'
+        : 'px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-medium opacity-80';
+
+      if (viewMode === 'episode-demo' || viewMode === 'rollback-script') setViewMode('after-tree');
+      const matches = getFilteredItems();
+      if (matches.length > 0) selectedName = matches[0].name;
+      renderLeftPane();
+      renderInspector();
+    }
+
+    function getFilteredItems() {
+      let list = ALL_ITEMS.slice();
+      if (heatFilter === 'token') {
+        list = list.filter(x => x.total_tokens >= 300).sort((a, b) => b.total_tokens - a.total_tokens);
+      } else if (heatFilter === 'disk') {
+        list = list.filter(x => x.reclaimable_mb > 0).sort((a, b) => b.reclaimable_mb - a.reclaimable_mb);
+      }
+      if (!searchQuery.trim()) return list;
+      const q = searchQuery.toLowerCase().trim();
+      return list.filter(item =>
+        item.name.toLowerCase().includes(q) ||
+        item.target_unix.toLowerCase().includes(q) ||
+        item.tree_group_zh.toLowerCase().includes(q) ||
+        item.tree_group_en.toLowerCase().includes(q)
+      );
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      ['after-tree', 'before-list', 'episode-demo', 'rollback-script'].forEach(m => {
+        const btn = document.getElementById('tab-' + m);
+        if (btn) {
+          btn.className = m === mode
+            ? 'px-2 py-1 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-medium'
+            : 'px-2 py-1 rounded-lg bg-[var(--secondary)] text-[var(--secondary-foreground)]';
+        }
+      });
+
+      document.getElementById('main-split').classList.add('hidden');
+      document.getElementById('episode-split').classList.add('hidden');
+      document.getElementById('rollback-split').classList.add('hidden');
+
+      if (mode === 'episode-demo') {
+        document.getElementById('episode-split').classList.remove('hidden');
+        renderEpisodeDemo();
+      } else if (mode === 'rollback-script') {
+        document.getElementById('rollback-split').classList.remove('hidden');
+        renderRollbackScripts();
+      } else {
+        document.getElementById('main-split').classList.remove('hidden');
+        renderLeftPane();
+      }
+    }
+
+    function onSearchInput(val) {
+      searchQuery = val;
+      if (viewMode === 'episode-demo' || viewMode === 'rollback-script') setViewMode('after-tree');
+      const matches = getFilteredItems();
+      if (matches.length > 0 && !matches.some(x => x.name === selectedName)) {
+        selectedName = matches[0].name;
+      }
+      renderLeftPane();
+      renderInspector();
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderLeftPane() {
+      const pane = document.getElementById('left-pane');
+      const items = getFilteredItems();
+      const t = I18N[currentLang];
+
+      if (items.length === 0) {
+        pane.innerHTML = `<div class="p-3 text-xs text-[var(--muted-foreground)]">${escapeHtml(t.noMatch)}</div>`;
+        return;
+      }
+
+      if (viewMode === 'after-tree') {
+        const groups = {};
+        items.forEach(item => {
+          const gKey = currentLang === 'zh' ? item.tree_group_zh : item.tree_group_en;
+          if (!groups[gKey]) groups[gKey] = { order: item.group_order || 99, list: [] };
+          groups[gKey].list.push(item);
+        });
+
+        const sortedGroupKeys = Object.keys(groups).sort((a, b) => groups[a].order - groups[b].order);
+
+        pane.innerHTML = sortedGroupKeys.map(gKey => {
+          const children = groups[gKey].list;
+          const grpTok = children.reduce((acc, c) => acc + (c.total_tokens >= 400 ? c.total_tokens : 0), 0);
+          const grpMb = Math.round(children.reduce((acc, c) => acc + c.reclaimable_mb, 0));
+
+          const rows = children.map(item => {
+            const isSel = item.name === selectedName;
+            const heatCls = getRowHeatmapClasses(item, isSel);
+            const shortTarget = item.target_unix.split('/').filter(Boolean).slice(-1)[0] || item.target_unix;
+            const encName = encodeURIComponent(item.name);
+            return `<button onclick="selectByEncoded('${encName}')" class="w-full text-left pl-3 pr-2 py-1 rounded text-xs transition flex items-center justify-between gap-1 ${heatCls}">
+              <span class="truncate font-mono">├─ ${escapeHtml(shortTarget)}/ <span class="text-[var(--muted-foreground)] font-sans">⬅️ ${escapeHtml(item.name)}</span></span>
+              ${renderHeatBadges(item)}
+            </button>`;
+          }).join('');
+
+          const grpBadges = [];
+          if (grpTok > 0) grpBadges.push(`<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono text-xs">🔥 ${grpTok.toLocaleString()}t</span>`);
+          if (grpMb > 0) grpBadges.push(`<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-xs">💎 ${grpMb}MB</span>`);
+
+          return `<div class="border border-[var(--border)] rounded-lg p-1.5 bg-[var(--card)]">
+            <div class="text-xs font-semibold px-1 py-0.5 flex items-center justify-between gap-1">
+              <span class="truncate">${escapeHtml(gKey)} <span class="text-[var(--muted-foreground)] font-mono">(${children.length})</span></span>
+              <div class="flex items-center gap-1 shrink-0">${grpBadges.join('')}</div>
+            </div>
+            <div class="mt-1 space-y-1">${rows}</div>
+          </div>`;
+        }).join('');
+
+      } else {
+        pane.innerHTML = items.map(item => {
+          const isSel = item.name === selectedName;
+          const heatCls = getRowHeatmapClasses(item, isSel);
+          const warn = item.has_space_or_cjk ? '⚠️ ' : '📁 ';
+          const encName = encodeURIComponent(item.name);
+          return `<button onclick="selectByEncoded('${encName}')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition flex items-center justify-between gap-1 ${heatCls}">
+            <span class="truncate">${warn}~/${escapeHtml(item.name)} <span class="text-[var(--muted-foreground)] font-mono">➡️ ${escapeHtml(item.target_unix)}</span></span>
+            ${renderHeatBadges(item)}
+          </button>`;
+        }).join('');
+      }
+    }
+
+    function selectByEncoded(enc) {
+      selectByName(decodeURIComponent(enc));
+    }
+
+    function selectByName(name) {
+      selectedName = name;
+      renderLeftPane();
+      renderInspector();
+    }
+
+    function renderInspector() {
+      const item = ALL_ITEMS.find(x => x.name === selectedName) || ALL_ITEMS[0];
+      if (!item) return;
+      const t = I18N[currentLang];
+
+      document.getElementById('d-badge').textContent = currentLang === 'zh' ? item.badge_zh : item.badge_en;
+      document.getElementById('d-tokens-pill').textContent = `${t.tokPillPrefix}${item.total_tokens.toLocaleString()} tok`;
+      document.getElementById('d-old-path').textContent = currentOS === 'unix' ? `~/${item.name}` : `%USERPROFILE%\${item.name.replace(/\//g, '\\')}`;
+      document.getElementById('d-target').textContent = currentOS === 'unix' ? item.target_unix : item.target_win;
+      document.getElementById('d-symlink-status').textContent = t.symlinkOk;
+      document.getElementById('d-reason').textContent = currentLang === 'zh' ? item.reason_zh : item.reason_en;
+
+      if (item.ai_files && item.ai_files.length > 0) {
+        const parts = item.ai_files.slice(0, 3).map(f => `${f.file} (${f.tokens.toLocaleString()})`).join(' + ');
+        document.getElementById('d-token-breakdown').textContent = `${parts} + ${t.treeIndexLbl} (${item.tree_tokens})`;
+      } else {
+        document.getElementById('d-token-breakdown').textContent = `${t.noAiFilesLbl} (~${item.tree_tokens} tok)`;
+      }
+
+      if (item.reclaimable_dirs && item.reclaimable_dirs.length > 0) {
+        const dparts = item.reclaimable_dirs.slice(0, 2).map(d => `${d.path} (${d.mb} MB)`).join(', ');
+        document.getElementById('d-disk-breakdown').textContent = `${t.diskReclaimPrefix}${item.reclaimable_mb}${t.diskReclaimMid} (${dparts})`;
+      } else {
+        document.getElementById('d-disk-breakdown').textContent = t.diskZeroLbl;
+      }
+
+      const dstUnix = item.target_unix.replace(/\/$/, '');
+      const parentUnix = dstUnix.substring(0, dstUnix.lastIndexOf('/'));
+      const dstWin = item.target_win.replace(/\\$/, '');
+      const parentWin = dstWin.substring(0, dstWin.lastIndexOf('\\')).replace('%USERPROFILE%', '$env:USERPROFILE');
+      const winDstClean = dstWin.replace('%USERPROFILE%', '$env:USERPROFILE');
+      const winSrc = item.name.replace(/\//g, '\\');
+
+      if (currentOS === 'unix') {
+        document.getElementById('d-os-tag').textContent = 'zsh / bash (Symlink)';
+        document.getElementById('d-cmd').textContent =
+          `${t.cmdComment1}\nmkdir -p "${parentUnix}"\nmv ~/"${item.name}" "${dstUnix}"\n${t.cmdComment2}\nln -sfn "${dstUnix}" ~/"${item.name}"`;
+      } else {
+        document.getElementById('d-os-tag').textContent = 'PowerShell (Junction)';
+        document.getElementById('d-cmd').textContent =
+          `${t.cmdComment1}\nNew-Item -ItemType Directory -Force -Path "${parentWin}" | Out-Null\nMove-Item -LiteralPath "$env:USERPROFILE\\${winSrc}" -Destination "${winDstClean}"\n${t.cmdComment2}\nNew-Item -ItemType Junction -Force -Path "$env:USERPROFILE\\${winSrc}" -Target "${winDstClean}"`;
+      }
+    }
+
+    function renderEpisodeDemo() {
+      const t = I18N[currentLang];
+      document.getElementById('ep-title').textContent = t.epTitle;
+      document.getElementById('ep-pill').textContent = t.epPill;
+      const sampleEp = ALL_ITEMS.find(x => x.layer === 'episodes') || { name: 'legacy_work/ep01', target_unix: '~/projects/media-studio/episodes/ep01/' };
+      const sampleKnow = ALL_ITEMS.find(x => x.layer === 'knowledge') || { name: 'OldWorkspace/Notes', target_unix: '~/knowledge/study/ml-notes/' };
+      const epSlug = sampleEp.target_unix.split('/').filter(Boolean).slice(-1)[0];
+
+      if (currentLang === 'zh') {
+        document.getElementById('ep-tree').textContent =
+`~/ (或 %USERPROFILE%\)
+├── 📚 ${sampleKnow.target_unix.replace('~/', '')}  # [1. 知識源頭 SSOT - 唯讀] (⬅️ 源自 ${sampleKnow.name})
+├── 🧠 ai-models/                                     # [2. 模型資產 SSOT - 設定檔唯讀指向]
+├── 🛰️ agent-hub/skills/                              # [3. 技能中樞 SSOT - 唯讀]
+├── 🧪 agent-lab/workspaces/daily-assistant/          # [4. 日常對話純淨沙盒 CWD - 零程式碼污染]
+└── 🚀 projects/media-studio/
+    ├── tools/                                        # ⚙️ 核心工具庫 (voice-kit / anim-kit 獨立 Git 版控)
+    └── episodes/${epSlug}/                         # ★ 你在 AGY / Claude 開啟的極致輕量工作區
+        ├── .agents/skills/                           # 🔗 唯讀軟連結 -> ~/agent-hub/skills/brand-style
+        ├── knowledge/                                # 🔗 唯讀軟連結 -> ${sampleKnow.target_unix}
+        ├── AGENTS.md                                 # 🛡️ 守門員契約：外部連結唯讀，只准寫入本地目錄
+        ├── prompt.md & script.md                     # 📝 State 1 (Git 版控)：講稿與分鏡配方
+        └── dist/.cache/                              # 🗑️ State 2 (過渡快取)：渲染後自毀，成品發布至 ~/outputs/`;
+      } else {
+        document.getElementById('ep-tree').textContent =
+`~/ (or %USERPROFILE%\)
+├── 📚 ${sampleKnow.target_unix.replace('~/', '')}  # [1. Knowledge Vault SSOT - Read-Only] (⬅️ from ${sampleKnow.name})
+├── 🧠 ai-models/                                     # [2. Model Weights SSOT - Config Ref Only]
+├── 🛰️ agent-hub/skills/                              # [3. Shared Skills Hub SSOT - Read-Only]
+├── 🧪 agent-lab/workspaces/daily-assistant/          # [4. Clean Daily Chat CWD - 0 Code Pollution]
+└── 🚀 projects/media-studio/
+    ├── tools/                                        # ⚙️ Core Engines (voice-kit / anim-kit in Git)
+    └── episodes/${epSlug}/                         # ★ Lightweight Task Workspace Opened in Agent
+        ├── .agents/skills/                           # 🔗 Read-Only Link -> ~/agent-hub/skills/brand-style
+        ├── knowledge/                                # 🔗 Read-Only Link -> ${sampleKnow.target_unix}
+        ├── AGENTS.md                                 # 🛡️ Guardrail: External links read-only; write only locally
+        ├── prompt.md & script.md                     # 📝 State 1 (Git Tracked): Script & recipe
+        └── dist/.cache/                              # 🗑️ State 2 (Cache): Auto-purge after render; final MP4 -> ~/outputs/`;
+      }
+    }
+
+    function renderRollbackScripts() {
+      const t = I18N[currentLang];
+      document.getElementById('rb-apply-title').textContent = t.rbApplyTitle;
+      document.getElementById('rb-undo-title').textContent = t.rbUndoTitle;
+
+      const sampleList = getFilteredItems();
+      if (currentOS === 'unix') {
+        const headerApply = currentLang === 'zh'
+          ? "#!/usr/bin/env bash\n# 階段性安全搬移腳本 (搬移實體 + 原位建立 Symlink 不斷鏈)\nset -e\n\n"
+          : "#!/usr/bin/env bash\n# Safe Zero-Downtime Migration Script (Move + Leave Symlink)\nset -e\n\n";
+        const headerUndo = currentLang === 'zh'
+          ? "#!/usr/bin/env bash\n# 💊 一鍵無損還原腳本 (移除 Symlink 並將實體搬回原路徑)\nset -e\n\n"
+          : "#!/usr/bin/env bash\n# 💊 1-Click Lossless Rollback Script (Remove Symlink & Restore Original Path)\nset -e\n\n";
+
+        const applyLines = sampleList.map(i => {
+          const dst = i.target_unix.replace(/\/$/, '');
+          const parent = dst.substring(0, dst.lastIndexOf('/'));
+          return `mkdir -p "${parent}"\nmv ~/"${i.name}" "${dst}"\nln -sfn "${dst}" ~/"${i.name}"`;
+        }).join('\n\n');
+
+        const undoLines = sampleList.map(i => {
+          const dst = i.target_unix.replace(/\/$/, '');
+          return `rm ~/"${i.name}"\nmv "${dst}" ~/"${i.name}"`;
+        }).join('\n\n');
+
+        document.getElementById('rb-apply-code').textContent = headerApply + applyLines;
+        document.getElementById('rb-undo-code').textContent = headerUndo + undoLines;
+      } else {
+        const headerApply = currentLang === 'zh'
+          ? "# PowerShell 安全搬移腳本 (搬移實體 + 建立免權限 Junction)\n\n"
+          : "# PowerShell Safe Migration Script (Move + Admin-Free Junction)\n\n";
+        const headerUndo = currentLang === 'zh'
+          ? "# 💊 PowerShell 一鍵無損還原腳本 (移除 Junction 並還原實體)\n\n"
+          : "# 💊 PowerShell 1-Click Rollback Script (Remove Junction & Restore)\n\n";
+
+        const applyLines = sampleList.map(i => {
+          const dst = i.target_win.replace(/\\$/, '').replace('%USERPROFILE%', '$env:USERPROFILE');
+          const parent = dst.substring(0, dst.lastIndexOf('\\'));
+          const src = `$env:USERPROFILE\\${i.name.replace(/\//g, '\\')}`;
+          return `New-Item -ItemType Directory -Force -Path "${parent}" | Out-Null\nMove-Item -LiteralPath "${src}" -Destination "${dst}"\nNew-Item -ItemType Junction -Force -Path "${src}" -Target "${dst}"`;
+        }).join('\n\n');
+
+        const undoLines = sampleList.map(i => {
+          const dst = i.target_win.replace(/\\$/, '').replace('%USERPROFILE%', '$env:USERPROFILE');
+          const src = `$env:USERPROFILE\\${i.name.replace(/\//g, '\\')}`;
+          return `(Get-Item -LiteralPath "${src}").Delete()\nMove-Item -LiteralPath "${dst}" -Destination "${src}"`;
+        }).join('\n\n');
+
+        document.getElementById('rb-apply-code').textContent = headerApply + applyLines;
+        document.getElementById('rb-undo-code').textContent = headerUndo + undoLines;
+      }
+    }
+
+    function applyTranslations() {
+      const t = I18N[currentLang];
+      document.getElementById('ui-tag').textContent = t.tag;
+      document.getElementById('ui-title').textContent = t.title;
+      document.getElementById('ui-max-tok-lbl').textContent = t.maxTokLbl;
+      document.getElementById('ui-reclaim-lbl').textContent = t.reclaimLbl;
+      document.getElementById('tab-after-tree').textContent = t.tabAfter;
+      document.getElementById('tab-before-list').textContent = t.tabBefore;
+      document.getElementById('tab-episode-demo').textContent = t.tabEpisode;
+      document.getElementById('tab-rollback-script').textContent = t.tabRollback;
+      document.getElementById('hf-all').textContent = t.hfAll;
+      document.getElementById('hf-token').textContent = t.hfToken;
+      document.getElementById('hf-disk').textContent = t.hfDisk;
+      document.getElementById('search-input').placeholder = t.searchPh;
+      document.getElementById('lbl-old-path').textContent = t.lblOldPath;
+      document.getElementById('lbl-target').textContent = t.lblTarget;
+      document.getElementById('lbl-symlink').textContent = t.lblSymlink;
+      document.getElementById('lbl-tok-bd').textContent = t.lblTokBd;
+      document.getElementById('lbl-disk-bd').textContent = t.lblDiskBd;
+      document.getElementById('lbl-cmd-title').textContent = t.lblCmdTitle;
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      document.getElementById('lang-zh').className = lang === 'zh' ? 'px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--foreground)] font-medium shadow-sm' : 'px-1.5 py-0.5 rounded text-[var(--muted-foreground)]';
+      document.getElementById('lang-en').className = lang === 'en' ? 'px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--foreground)] font-medium shadow-sm' : 'px-1.5 py-0.5 rounded text-[var(--muted-foreground)]';
+      applyTranslations();
+      renderLeftPane();
+      renderInspector();
+      if (viewMode === 'episode-demo') renderEpisodeDemo();
+      if (viewMode === 'rollback-script') renderRollbackScripts();
+    }
+
+    function setOS(os) {
+      currentOS = os;
+      document.getElementById('os-unix').className = os === 'unix' ? 'px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--foreground)] font-medium shadow-sm' : 'px-1.5 py-0.5 rounded text-[var(--muted-foreground)]';
+      document.getElementById('os-win').className = os === 'win' ? 'px-1.5 py-0.5 rounded bg-[var(--card)] text-[var(--foreground)] font-medium shadow-sm' : 'px-1.5 py-0.5 rounded text-[var(--muted-foreground)]';
+      renderInspector();
+      if (viewMode === 'rollback-script') renderRollbackScripts();
+    }
+
+    setLang(currentLang);
+  </script>
+</body>
+</html>

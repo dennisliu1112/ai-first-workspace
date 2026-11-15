@@ -1,0 +1,10 @@
+# Local personal migration notes & Python bytecode (Never commit to public GitHub)
+.local/
+dry-run-report.html
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+Thumbs.db
+dist/
+.cache/
