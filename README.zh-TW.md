@@ -1,7 +1,7 @@
 # AI-First Workspace Architecture (`ai-first-workspace`)
 
 > 🌐 **Language / 語言**: [English](./README.md) | **繁體中文 (zh-TW)**  
-> 🛡️ **開源授權**: [MIT License](./LICENSE) | ✅ **零外部依賴** (Python 3 內建標準庫) | 🧪 **單元測試**: 17/17 全數通過 (`python -m unittest discover -s tests -v`)
+> 🛡️ **開源授權**: [MIT License](./LICENSE) | ✅ **零外部依賴** (Python 3 內建標準庫) | 🧪 **單元測試**: 18/18 全數通過 (`python -m unittest discover -s tests -v`)
 
 **別再讓混亂的家目錄每次對話偷燒 4,000～20,000+ Tokens，也別再讓 AI 把支線產物隨手傾倒在你的乾淨專案裡。**
 
@@ -256,6 +256,6 @@ find ~/projects -path "*/dist/.cache/*" -mtime +7 -delete
 | [`skills/workspace-governance/SKILL.md`](./skills/workspace-governance/SKILL.md) | 跨平台 AI Agent 目錄治理技能（相容 Claude Code、Antigravity、Cursor、Codex）。 |
 | [`scripts/audit-workspace.py`](./scripts/audit-workspace.py) | 零外部相依套件之 Python 3 唯讀體檢腳本、CWD 就地傾倒檢查器與雙語互動式 HTML 生成器。 |
 | [`examples/demo-report.html`](./examples/demo-report.html) | 預先生成的雙語（`繁中 / EN`）互動式效益熱力圖模擬器範例報告。 |
-| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 17 項自動化單元測試（涵蓋內容特徵分類、通用容器展開、儲存庫純淨度與 XSS 防護）。 |
+| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 18 項自動化單元測試（涵蓋內容特徵分類、通用容器展開、儲存庫純淨度與 Shell／XSS 安全防護）。 |
 | [`.github/workflows/test.yml`](./.github/workflows/test.yml) | 跨平台 GitHub Actions 自動化測試工作流（`ubuntu-latest`、`macos-latest`、`windows-latest`）。 |
 | [`LICENSE`](./LICENSE) | MIT 開源授權條款。 |

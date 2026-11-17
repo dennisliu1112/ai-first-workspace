@@ -1,7 +1,7 @@
 # AI-First Workspace Architecture (`ai-first-workspace`)
 
 > 🌐 **Language / 語言**: **English** | [繁體中文 (zh-TW)](./README.zh-TW.md)  
-> 🛡️ **License**: [MIT](./LICENSE) | ✅ **Zero Dependencies** (Python 3 Stdlib) | 🧪 **Tests**: 17/17 Passing (`python -m unittest discover -s tests -v`)
+> 🛡️ **License**: [MIT](./LICENSE) | ✅ **Zero Dependencies** (Python 3 Stdlib) | 🧪 **Tests**: 18/18 Passing (`python -m unittest discover -s tests -v`)
 
 **Stop burning 4,000–20,000+ context tokens per turn on messy monorepos—and stop letting AI agents dump tangential side-quests into your clean project directories.**
 
@@ -256,6 +256,6 @@ This architecture intentionally **avoids vendor lock-in or bloated built-in view
 | [`skills/workspace-governance/SKILL.md`](./skills/workspace-governance/SKILL.md) | Portable AI Agent Governance Skill (compatible with Claude Code, Antigravity, Cursor, Codex). |
 | [`scripts/audit-workspace.py`](./scripts/audit-workspace.py) | Zero-dependency Python 3 read-only workspace auditor, CWD anti-dump checker, and interactive HTML generator. |
 | [`examples/demo-report.html`](./examples/demo-report.html) | Pre-generated interactive bilingual (`EN / 繁中`) Dry-Run Heatmap Simulator sample. |
-| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 17 automated unit tests covering classification heuristics, container unrolling, repo purity, and XSS safety. |
+| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 18 automated unit tests covering classification heuristics, container unrolling, repo purity, and shell/XSS safety. |
 | [`.github/workflows/test.yml`](./.github/workflows/test.yml) | Cross-platform GitHub Actions CI workflow (`ubuntu-latest`, `macos-latest`, `windows-latest`). |
 | [`LICENSE`](./LICENSE) | MIT Open-Source License. |
