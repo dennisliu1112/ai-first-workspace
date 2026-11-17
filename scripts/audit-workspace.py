@@ -1193,7 +1193,8 @@ def generate_html_report(items: list, output_path: Path, default_lang: str = "zh
         document.getElementById('d-disk-breakdown').textContent = t.diskZeroLbl;
       }}
 
-      const dstUnix = item.target_unix.replace(/\\/$/, '');
+      // "~" does not expand inside double quotes; use $HOME in generated shell commands.
+      const dstUnix = item.target_unix.replace(/\\/$/, '').replace(/^~\\//, '$HOME/');
       const parentUnix = dstUnix.substring(0, dstUnix.lastIndexOf('/'));
       const dstWin = item.target_win.replace(/\\\\$/, '');
       const parentWin = dstWin.substring(0, dstWin.lastIndexOf('\\\\')).replace('%USERPROFILE%', '$env:USERPROFILE');
@@ -1267,13 +1268,13 @@ def generate_html_report(items: list, output_path: Path, default_lang: str = "zh
           : "#!/usr/bin/env bash\\n# 💊 1-Click Lossless Rollback Script (Remove Symlink & Restore Original Path)\\nset -e\\n\\n";
 
         const applyLines = sampleList.map(i => {{
-          const dst = i.target_unix.replace(/\\/$/, '');
+          const dst = i.target_unix.replace(/\\/$/, '').replace(/^~\\//, '$HOME/');
           const parent = dst.substring(0, dst.lastIndexOf('/'));
           return `mkdir -p "${{parent}}"\\nmv ~/"${{i.name}}" "${{dst}}"\\nln -sfn "${{dst}}" ~/"${{i.name}}"`;
         }}).join('\\n\\n');
 
         const undoLines = sampleList.map(i => {{
-          const dst = i.target_unix.replace(/\\/$/, '');
+          const dst = i.target_unix.replace(/\\/$/, '').replace(/^~\\//, '$HOME/');
           return `rm ~/"${{i.name}}"\\nmv "${{dst}}" ~/"${{i.name}}"`;
         }}).join('\\n\\n');
 
