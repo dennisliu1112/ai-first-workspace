@@ -1,7 +1,7 @@
 # AI-First Workspace Architecture (`ai-first-workspace`)
 
 > 🌐 **Language / 語言**: [English](./README.md) | **繁體中文 (zh-TW)**  
-> 🛡️ **開源授權**: [MIT License](./LICENSE) | ✅ **零外部依賴** (Python 3 內建標準庫) | 🧪 **單元測試**: 18/18 全數通過 (`python -m unittest discover -s tests -v`)
+> 🛡️ **開源授權**: [MIT License](./LICENSE) | ✅ **零外部依賴** (Python 3 內建標準庫) | 🧪 **單元測試**: 19/19 全數通過 (`python -m unittest discover -s tests -v`)
 
 **別再讓混亂的家目錄每次對話偷燒 4,000～20,000+ Tokens，也別再讓 AI 把支線產物隨手傾倒在你的乾淨專案裡。**
 
@@ -225,11 +225,11 @@ find ~/projects -path "*/dist/.cache/*" -mtime +7 -delete
 
 - **macOS / Linux 一行安裝指令**：
   ```bash
-  mkdir -p ~/agent-hub/skills ~/.claude/skills ~/.agents/skills ~/.gemini/config/skills && rm -rf ~/agent-hub/skills/workspace-governance && cp -R skills/workspace-governance ~/agent-hub/skills/ && mkdir -p ~/agent-hub/skills/workspace-governance/scripts && cp scripts/audit-workspace.py ~/agent-hub/skills/workspace-governance/scripts/ && ln -sfn ~/agent-hub/skills/workspace-governance ~/.claude/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.agents/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.gemini/config/skills/workspace-governance
+  mkdir -p ~/agent-hub/skills ~/.claude/skills ~/.agents/skills ~/.gemini/config/skills && rm -rf ~/agent-hub/skills/workspace-governance && cp -R skills/workspace-governance ~/agent-hub/skills/ && ln -sfn ~/agent-hub/skills/workspace-governance ~/.claude/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.agents/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.gemini/config/skills/workspace-governance
   ```
 - **Windows (PowerShell 免管理員權限 Junction) 一行安裝指令**：
   ```powershell
-  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\agent-hub\skills", "$env:USERPROFILE\.claude\skills", "$env:USERPROFILE\.agents\skills", "$env:USERPROFILE\.gemini\config\skills" | Out-Null; Copy-Item -Recurse -Force ".\skills\workspace-governance" "$env:USERPROFILE\agent-hub\skills\"; New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\agent-hub\skills\workspace-governance\scripts" | Out-Null; Copy-Item -Force ".\scripts\audit-workspace.py" "$env:USERPROFILE\agent-hub\skills\workspace-governance\scripts\"; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.claude\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.agents\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.gemini\config\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null
+  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\agent-hub\skills", "$env:USERPROFILE\.claude\skills", "$env:USERPROFILE\.agents\skills", "$env:USERPROFILE\.gemini\config\skills" | Out-Null; Copy-Item -Recurse -Force ".\skills\workspace-governance" "$env:USERPROFILE\agent-hub\skills\"; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.claude\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.agents\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.gemini\config\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null
   ```
 
 安裝後，無論你在哪個工作區，都可以直接對你的 AI 助理說：
@@ -256,6 +256,6 @@ find ~/projects -path "*/dist/.cache/*" -mtime +7 -delete
 | [`skills/workspace-governance/SKILL.md`](./skills/workspace-governance/SKILL.md) | 跨平台 AI Agent 目錄治理技能（相容 Claude Code、Antigravity、Cursor、Codex）。 |
 | [`scripts/audit-workspace.py`](./scripts/audit-workspace.py) | 零外部相依套件之 Python 3 唯讀體檢腳本、CWD 就地傾倒檢查器與雙語互動式 HTML 生成器。 |
 | [`examples/demo-report.html`](./examples/demo-report.html) | 預先生成的雙語（`繁中 / EN`）互動式效益熱力圖模擬器範例報告。 |
-| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 18 項自動化單元測試（涵蓋內容特徵分類、通用容器展開、儲存庫純淨度與 Shell／XSS 安全防護）。 |
+| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 19 項自動化單元測試（涵蓋內容特徵分類、通用容器展開、儲存庫純淨度、技能包同步與 Shell／XSS 安全防護）。 |
 | [`.github/workflows/test.yml`](./.github/workflows/test.yml) | 跨平台 GitHub Actions 自動化測試工作流（`ubuntu-latest`、`macos-latest`、`windows-latest`）。 |
 | [`LICENSE`](./LICENSE) | MIT 開源授權條款。 |

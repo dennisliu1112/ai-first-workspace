@@ -537,6 +537,12 @@ class TestPublicFilesDeIdentification(unittest.TestCase):
             issues = audit_mod.check_repo_purity(repo)
             self.assertEqual(issues, [])
 
+    def test_bundled_skill_script_matches_root_script(self):
+        """驗證 skills/workspace-governance/scripts/audit-workspace.py 與根目錄 scripts/ 100% 同步（確保 Agensi 市集開箱即用）"""
+        root_script = (REPO_ROOT / "scripts" / "audit-workspace.py").read_text(encoding="utf-8")
+        bundled_script = (REPO_ROOT / "skills" / "workspace-governance" / "scripts" / "audit-workspace.py").read_text(encoding="utf-8")
+        self.assertEqual(root_script, bundled_script)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

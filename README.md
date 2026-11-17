@@ -1,7 +1,7 @@
 # AI-First Workspace Architecture (`ai-first-workspace`)
 
 > 🌐 **Language / 語言**: **English** | [繁體中文 (zh-TW)](./README.zh-TW.md)  
-> 🛡️ **License**: [MIT](./LICENSE) | ✅ **Zero Dependencies** (Python 3 Stdlib) | 🧪 **Tests**: 18/18 Passing (`python -m unittest discover -s tests -v`)
+> 🛡️ **License**: [MIT](./LICENSE) | ✅ **Zero Dependencies** (Python 3 Stdlib) | 🧪 **Tests**: 19/19 Passing (`python -m unittest discover -s tests -v`)
 
 **Stop burning 4,000–20,000+ context tokens per turn on messy monorepos—and stop letting AI agents dump tangential side-quests into your clean project directories.**
 
@@ -225,11 +225,11 @@ Install [`skills/workspace-governance/SKILL.md`](./skills/workspace-governance/S
 
 - **macOS / Linux (Claude Code, Antigravity, Cursor, Codex)**:
   ```bash
-  mkdir -p ~/agent-hub/skills ~/.claude/skills ~/.agents/skills ~/.gemini/config/skills && rm -rf ~/agent-hub/skills/workspace-governance && cp -R skills/workspace-governance ~/agent-hub/skills/ && mkdir -p ~/agent-hub/skills/workspace-governance/scripts && cp scripts/audit-workspace.py ~/agent-hub/skills/workspace-governance/scripts/ && ln -sfn ~/agent-hub/skills/workspace-governance ~/.claude/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.agents/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.gemini/config/skills/workspace-governance
+  mkdir -p ~/agent-hub/skills ~/.claude/skills ~/.agents/skills ~/.gemini/config/skills && rm -rf ~/agent-hub/skills/workspace-governance && cp -R skills/workspace-governance ~/agent-hub/skills/ && ln -sfn ~/agent-hub/skills/workspace-governance ~/.claude/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.agents/skills/workspace-governance && ln -sfn ~/agent-hub/skills/workspace-governance ~/.gemini/config/skills/workspace-governance
   ```
 - **Windows (PowerShell — Admin-Free Junction)**:
   ```powershell
-  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\agent-hub\skills", "$env:USERPROFILE\.claude\skills", "$env:USERPROFILE\.agents\skills", "$env:USERPROFILE\.gemini\config\skills" | Out-Null; Copy-Item -Recurse -Force ".\skills\workspace-governance" "$env:USERPROFILE\agent-hub\skills\"; New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\agent-hub\skills\workspace-governance\scripts" | Out-Null; Copy-Item -Force ".\scripts\audit-workspace.py" "$env:USERPROFILE\agent-hub\skills\workspace-governance\scripts\"; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.claude\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.agents\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.gemini\config\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null
+  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\agent-hub\skills", "$env:USERPROFILE\.claude\skills", "$env:USERPROFILE\.agents\skills", "$env:USERPROFILE\.gemini\config\skills" | Out-Null; Copy-Item -Recurse -Force ".\skills\workspace-governance" "$env:USERPROFILE\agent-hub\skills\"; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.claude\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.agents\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null; New-Item -ItemType Junction -Force -Path "$env:USERPROFILE\.gemini\config\skills\workspace-governance" -Target "$env:USERPROFILE\agent-hub\skills\workspace-governance" | Out-Null
   ```
 
 Then prompt your agent from anywhere:
@@ -256,6 +256,6 @@ This architecture intentionally **avoids vendor lock-in or bloated built-in view
 | [`skills/workspace-governance/SKILL.md`](./skills/workspace-governance/SKILL.md) | Portable AI Agent Governance Skill (compatible with Claude Code, Antigravity, Cursor, Codex). |
 | [`scripts/audit-workspace.py`](./scripts/audit-workspace.py) | Zero-dependency Python 3 read-only workspace auditor, CWD anti-dump checker, and interactive HTML generator. |
 | [`examples/demo-report.html`](./examples/demo-report.html) | Pre-generated interactive bilingual (`EN / 繁中`) Dry-Run Heatmap Simulator sample. |
-| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 18 automated unit tests covering classification heuristics, container unrolling, repo purity, and shell/XSS safety. |
+| [`tests/test_audit_workspace.py`](./tests/test_audit_workspace.py) | 19 automated unit tests covering classification heuristics, container unrolling, repo purity, skill bundling, and shell/XSS safety. |
 | [`.github/workflows/test.yml`](./.github/workflows/test.yml) | Cross-platform GitHub Actions CI workflow (`ubuntu-latest`, `macos-latest`, `windows-latest`). |
 | [`LICENSE`](./LICENSE) | MIT Open-Source License. |

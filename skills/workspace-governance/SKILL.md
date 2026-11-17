@@ -36,10 +36,23 @@ description: Bilingual (English & Traditional Chinese zh-TW) cross-platform AI-F
 When the user asks to audit, clean up, or refactor their home directory or legacy workspaces, **NEVER move or delete any files before the user reviews the Dry-Run plan**. Follow these 4 steps:
 
 ### Step 1: Run Real Token & Disk Audit (`scripts/audit-workspace.py`) / 執行實測盤點腳本
-Never invent magic numbers. Run the read-only auditor script (from the local repo `./scripts/audit-workspace.py` or the global skill hub `~/agent-hub/skills/workspace-governance/scripts/audit-workspace.py`) to measure real context token overhead and disk bloat:
-```bash
-python3 ~/agent-hub/skills/workspace-governance/scripts/audit-workspace.py --root ~/ --out-html ./dist/.cache/dry-run-report.html
-```
+Never invent magic numbers. Run the bundled read-only auditor script to measure real context token overhead and disk bloat:
+
+1. **If installed as a skill folder** (e.g., via Agensi, `agent-skills-cli`, or `~/agent-hub/`):
+   ```bash
+   python3 ~/.agents/skills/workspace-governance/scripts/audit-workspace.py --root ~/ --out-html ./dist/.cache/dry-run-report.html
+   # Or from ~/agent-hub/skills/workspace-governance/scripts/audit-workspace.py (or ./scripts/audit-workspace.py inside the repo)
+   ```
+2. **If loaded via MCP / `SKILL.md`-only mode** (where `scripts/audit-workspace.py` is not yet on disk):
+   Fetch the zero-dependency single-file script into temp storage and run it (100% read-only):
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/dennisliu1112/ai-first-workspace/main/scripts/audit-workspace.py -o /tmp/audit-workspace.py && python3 /tmp/audit-workspace.py --root ~/ --out-html ./dist/.cache/dry-run-report.html
+   ```
+   *(Windows PowerShell)*:
+   ```powershell
+   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/dennisliu1112/ai-first-workspace/main/scripts/audit-workspace.py" -OutFile "$env:TEMP\audit-workspace.py"; python "$env:TEMP\audit-workspace.py" --root $env:USERPROFILE --out-html .\dist\.cache\dry-run-report.html
+   ```
+
 1. **Real AI Context Token Formula / 真實 Token 精算公式**:
    - Scans auto-loaded AI files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `SKILL.md`, `MEMORY.md`, `.github/copilot-instructions.md`, `.agents/**/*.md`, `.claude/**/*.md`, `.cursor/rules/*.mdc`).
    - Formula: `Tokens = (ASCII_chars * 0.25) + (Non_ASCII_chars * 1.3) + (Top_Level_Items * 6)`.
