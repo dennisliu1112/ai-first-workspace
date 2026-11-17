@@ -341,6 +341,49 @@ class TestHtmlSimulatorAndJavaScriptRuntime(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, msg=f"Node runtime failed: {proc.stderr}")
             self.assertIn("UNIT_TEST_JS_RUNTIME_OK", proc.stdout)
 
+    def test_unix_commands_never_put_tilde_inside_double_quotes(self):
+        """回歸測試：bash 不會展開雙引號內的 ~，產生的 Unix 指令必須改用 $HOME（否則會在 CWD 建出名為 ~ 的資料夾）"""
+        with tempfile.TemporaryDirectory() as tmp:
+            out_html = Path(tmp) / "sim.html"
+            items = audit_mod.build_generic_demo_items()
+            audit_mod.generate_html_report(items, out_html, default_lang="en")
+            scripts = re.findall(r"<script>(.*?)</script>", out_html.read_text(encoding="utf-8"), flags=re.DOTALL)
+
+            js_harness = (
+                """
+                const elements = {};
+                global.document = {
+                  getElementById: (id) => {
+                    if (!elements[id]) {
+                      elements[id] = {
+                        textContent: '', innerHTML: '', className: '', placeholder: '', value: '',
+                        classList: { add: () => {}, remove: () => {} }
+                      };
+                    }
+                    return elements[id];
+                  }
+                };
+                """
+                + scripts[0]
+                + """
+                setOS('unix');
+                setViewMode('after-tree');
+                const single = elements['d-cmd'].textContent;
+                setViewMode('rollback-script');
+                const blocks = { single, apply: elements['rb-apply-code'].textContent, undo: elements['rb-undo-code'].textContent };
+                for (const [name, text] of Object.entries(blocks)) {
+                  if (text.includes('"~/')) throw new Error(name + ' contains quoted tilde: ' + text);
+                  if (!text.includes('"$HOME/')) throw new Error(name + ' does not use $HOME: ' + text);
+                }
+                console.log('TILDE_QUOTING_OK');
+                """
+            )
+            js_file = Path(tmp) / "tilde_test.js"
+            js_file.write_text(js_harness, encoding="utf-8")
+            proc = subprocess.run(["node", str(js_file)], capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, msg=f"Node runtime failed: {proc.stderr}")
+            self.assertIn("TILDE_QUOTING_OK", proc.stdout)
+
     def test_xss_script_breakout_quotes_and_empty_items_resilience(self):
         """驗證惡意/特殊字元資料夾名稱 (</script>, 單雙引號, 反斜線, HTML 標籤) 與空陣列 [] 之安全性"""
         with tempfile.TemporaryDirectory() as tmp:
